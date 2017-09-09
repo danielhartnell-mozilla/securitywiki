@@ -37,6 +37,18 @@ if ! [ -e index.php -a -e includes/DefaultSettings.php ]; then
 	echo >&2 "Complete! MediaWiki has been successfully copied to $(pwd)"
 fi
 
+#!/bin/bash
+
+# Check that the environment variable has been set correctly
+if [ -z "$S3_BUCKET_NAME" ]; then
+  echo >&2 'error: missing SECRETS_BUCKET_NAME environment variable'
+  exit 1
+fi
+
+# Load the S3 secrets file contents into the environment variables
+aws s3 cp s3://${S3_BUCKET_NAME}/securitywiki/secrets/configuration_files/LocalSettings.php /var/www-shared/html/
+
+
 : ${MEDIAWIKI_SHARED:=/var/www-shared/html}
 if [ -d "$MEDIAWIKI_SHARED" ]; then
 	# If there is no LocalSettings.php but we have one under the shared
