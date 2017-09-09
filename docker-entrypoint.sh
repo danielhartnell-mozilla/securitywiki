@@ -4,7 +4,7 @@ set -e
 
 : ${MEDIAWIKI_SITE_NAME:=MediaWiki}
 
-if [ -z "$MEDIAWIKI_DB_HOST" -a -z "$MYSQL_PORT_3306_TCP" ]; then
+if [ -z "$RDS_HOSTNAME" -a -z "$MYSQL_PORT_3306_TCP" ]; then
 	echo >&2 'error: missing MYSQL_PORT_3306_TCP environment variable'
 	echo >&2 '  Did you forget to --link some_mysql_container:mysql ?'
 	exit 1
@@ -12,17 +12,17 @@ fi
 
 # if we're linked to MySQL, and we're using the root user, and our linked
 # container has a default "root" password set up and passed through... :)
-: ${MEDIAWIKI_DB_USER:=root}
-if [ "$MEDIAWIKI_DB_USER" = 'root' ]; then
-	: ${MEDIAWIKI_DB_PASSWORD:=$MYSQL_ENV_MYSQL_ROOT_PASSWORD}
+: ${RDS_USERNAME:=root}
+if [ "$RDS_USERNAME" = 'root' ]; then
+	: ${RDS_PASSWORD:=$MYSQL_ENV_MYSQL_ROOT_PASSWORD}
 fi
 : ${MEDIAWIKI_DB_NAME:=mediawiki}
 
-if [ -z "$MEDIAWIKI_DB_PASSWORD" ]; then
-	echo >&2 'error: missing required MEDIAWIKI_DB_PASSWORD environment variable'
-	echo >&2 '  Did you forget to -e MEDIAWIKI_DB_PASSWORD=... ?'
+if [ -z "$RDS_PASSWORD" ]; then
+	echo >&2 'error: missing required RDS_PASSWORD environment variable'
+	echo >&2 '  Did you forget to -e RDS_PASSWORD=... ?'
 	echo >&2
-	echo >&2 '  (Also of interest might be MEDIAWIKI_DB_USER and MEDIAWIKI_DB_NAME.)'
+	echo >&2 '  (Also of interest might be RDS_USERNAME and MEDIAWIKI_DB_NAME.)'
 	exit 1
 fi
 
@@ -54,9 +54,9 @@ if [ -d "$MEDIAWIKI_SHARED" ]; then
 	fi
 fi
 
-: ${MEDIAWIKI_DB_HOST:=${MYSQL_PORT_3306_TCP#tcp://}}
+: ${RDS_HOSTNAME:=${MYSQL_PORT_3306_TCP#tcp://}}
 
-TERM=dumb php -- "$MEDIAWIKI_DB_HOST" "$MEDIAWIKI_DB_USER" "$MEDIAWIKI_DB_PASSWORD" "$MEDIAWIKI_DB_NAME" <<'EOPHP'
+TERM=dumb php -- "$RDS_HOSTNAME" "$RDS_USERNAME" "$RDS_PASSWORD" "$MEDIAWIKI_DB_NAME" <<'EOPHP'
 <?php
 // database might not exist, so let's try creating it (just to be safe)
 
@@ -79,6 +79,6 @@ EOPHP
 
 chown -R www-data: .
 
-export MEDIAWIKI_SITE_NAME MEDIAWIKI_DB_HOST MEDIAWIKI_DB_USER MEDIAWIKI_DB_PASSWORD MEDIAWIKI_DB_NAME
+export MEDIAWIKI_SITE_NAME RDS_HOSTNAME RDS_USERNAME RDS_PASSWORD MEDIAWIKI_DB_NAME
 
 exec "$@"
